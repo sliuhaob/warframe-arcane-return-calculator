@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "warframe-arcane-return-calculator"
+version = "1.0.0"
+description = "Warframe Market 48-hour Arcane price and Loid collection return calculator"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "sliuhaob" }]
+dependencies = ["openpyxl>=3.1,<4"]
+keywords = ["warframe", "warframe-market", "arcane", "vosfor"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/sliuhaob/warframe-arcane-return-calculator"
+Issues = "https://github.com/sliuhaob/warframe-arcane-return-calculator/issues"
+
+[project.scripts]
+warframe-arcane-prices = "warframe_arcane_prices:main"
+warframe-arcane-workbook = "build_arcane_workbook:main"
+
+[tool.setuptools]
+py-modules = ["warframe_arcane_prices", "build_arcane_workbook"]

@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.venv/
+.cache/
+.pytest_cache/
+*.egg-info/
+node_modules/
+outputs/
+*.csv
+*.json
+*.xlsx
+*.inspect.ndjson
+.DS_Store
+Thumbs.db
+
+# An interrupted Windows venv creation can leave these at the repository root.
+Include/
+Lib/
+Scripts/
+pyvenv.cfg
