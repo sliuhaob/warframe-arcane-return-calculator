@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import random
 import re
 import sys
@@ -526,6 +527,9 @@ def _retry_delay(attempt: int, retry_after: str | None = None) -> float:
 
 
 def cache_path() -> Path:
+    configured_directory = os.environ.get("ARCANE_CACHE_DIR")
+    if configured_directory:
+        return Path(configured_directory).expanduser().resolve() / f"items_{ITEM_LANGUAGE}.json"
     return Path(__file__).resolve().parent / ".cache" / f"items_{ITEM_LANGUAGE}.json"
 
 

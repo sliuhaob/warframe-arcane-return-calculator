@@ -1,11 +1,14 @@
 __pycache__/
 *.py[cod]
 .venv/
+.build-venv/
 .cache/
 .pytest_cache/
 *.egg-info/
 node_modules/
 outputs/
+build/
+dist/
 *.csv
 *.json
 *.xlsx
