@@ -43,7 +43,7 @@ def parse_args() -> argparse.Namespace:
 
 def fallback_valuation_method(row: dict[str, Any], methodology: dict[str, Any]) -> str:
     price = row.get("average_price_48h")
-    volume = int(row.get("latest_daily_volume") or 0)
+    volume = int(row.get("previous_day_volume", row.get("latest_daily_volume")) or 0)
     min_volume = int(methodology.get("minDailyVolume") or 10)
     second_min = int(methodology.get("secondaryFilterMinDailyVolume") or 10)
     second_max = int(methodology.get("secondaryFilterMaxDailyVolume") or 20)
@@ -103,7 +103,7 @@ def _write_detail_sheet(
         "洛德组合包",
         "概率池",
         "单次抽中概率(%)",
-        "最近日成交数量",
+        "前一日成交数量",
         "计价方式",
         "近48小时加权平均价(满级/白金)",
         "分解荧尘/个",
@@ -151,7 +151,7 @@ def _write_detail_sheet(
                 pack_name,
                 item.get("tier_name_zh", "") if item else "",
                 float(item["probability_per_draw"]) * 100 if item else "",
-                int(row.get("latest_daily_volume") or 0),
+                int(row.get("previous_day_volume", row.get("latest_daily_volume")) or 0),
                 method,
                 row.get("average_price_48h") if row.get("average_price_48h") is not None else "",
                 int(row.get("dissolution_vosfor") or 0),
@@ -267,7 +267,7 @@ def _write_parameters_sheet(workbook: Workbook, data: dict[str, Any]) -> None:
 
     parameter_rows = [
         ["参数", "值", "说明"],
-        ["最近日成交量门槛", min_volume, "低于最近一个已结算自然日门槛时，不按 48 小时平均价出售"],
+        ["前一日成交量门槛", min_volume, "低于前一个完整 UTC 自然日门槛时，不按 48 小时平均价出售；该日无记录按 0 计"],
         ["组合包成本（荧尘）", methodology["packCostVosfor"], "每次购买一个洛德组合包"],
         ["每包抽取数量", methodology["drawsPerPack"], "每个组合包独立抽取 3 个赋能"],
         ["荧尘再投资规则", "购买来源组合包", "每个包分解所得荧尘只继续购买同一个包"],

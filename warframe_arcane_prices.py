@@ -15,7 +15,7 @@ import re
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -67,7 +67,7 @@ class PriceRow:
     volume_48h: int
     statistics_48h_start: str
     statistics_48h_end: str
-    latest_daily_volume: int
+    previous_day_volume: int
     volume_date: str
     item_url: str
     fetched_at: str
@@ -433,7 +433,7 @@ class WarframeMarketClient:
         slug: str,
         max_rank: int,
     ) -> tuple[float | None, int, str, str, int, str]:
-        """Return 48-hour VWAP plus the latest closed daily volume for an exact rank."""
+        """Return 48-hour VWAP plus the previous UTC day's volume for an exact rank."""
         url = f"{STATS_API_BASE}/items/{slug}/statistics"
         payload = self._request_json(url)
         statistics_closed = payload.get("payload", {}).get("statistics_closed", {})
@@ -466,22 +466,24 @@ class WarframeMarketClient:
         statistics_48h_start = min(hourly_dates) if hourly_dates else ""
         statistics_48h_end = max(hourly_dates) if hourly_dates else ""
 
+        previous_day = datetime.now(timezone.utc).date() - timedelta(days=1)
+        previous_day_iso = previous_day.isoformat()
         daily = [
             record
             for record in statistics_closed.get("90days", [])
             if isinstance(record, dict)
             and record.get("mod_rank") == max_rank
             and isinstance(record.get("volume"), int)
+            and str(record.get("datetime") or "")[:10] == previous_day_iso
         ]
-        latest = max(daily, key=lambda record: str(record.get("datetime") or ""), default=None)
-        latest_daily_volume = int(latest["volume"]) if latest else 0
-        volume_date = str(latest.get("datetime") or "") if latest else ""
+        previous_day_volume = int(sum(int(record["volume"]) for record in daily))
+        volume_date = f"{previous_day_iso}T00:00:00.000+00:00"
         return (
             average_price_48h,
             volume_48h,
             statistics_48h_start,
             statistics_48h_end,
-            latest_daily_volume,
+            previous_day_volume,
             volume_date,
         )
 
@@ -644,7 +646,7 @@ def fetch_prices(
             volume_48h,
             statistics_48h_start,
             statistics_48h_end,
-            daily_volume,
+            previous_day_volume,
             volume_date,
         ) = client.get_market_statistics(slug, max_rank)
 
@@ -660,7 +662,7 @@ def fetch_prices(
                 volume_48h=volume_48h,
                 statistics_48h_start=statistics_48h_start,
                 statistics_48h_end=statistics_48h_end,
-                latest_daily_volume=daily_volume,
+                previous_day_volume=previous_day_volume,
                 volume_date=volume_date,
                 item_url=f"https://warframe.market/items/{slug}",
                 fetched_at=fetched_at,
@@ -877,7 +879,7 @@ def valuation_method_for_row(row: PriceRow, min_daily_volume: int) -> str:
     """Return the market/recycling treatment for one max-rank Arcane."""
     if row.average_price_48h is None:
         return "分解再投" if row.dissolution_vosfor > 0 else "无回收价值"
-    if row.latest_daily_volume < min_daily_volume:
+    if row.previous_day_volume < min_daily_volume:
         return (
             "分解再投"
             if row.dissolution_vosfor > 0
@@ -885,7 +887,7 @@ def valuation_method_for_row(row: PriceRow, min_daily_volume: int) -> str:
         )
     if (
         SECONDARY_FILTER_MIN_DAILY_VOLUME
-        <= row.latest_daily_volume
+        <= row.previous_day_volume
         <= SECONDARY_FILTER_MAX_DAILY_VOLUME
         and row.average_price_48h < SECONDARY_FILTER_MIN_AVERAGE_PRICE
     ):
@@ -907,7 +909,7 @@ PRICE_CSV_HEADERS = (
     "近48小时成交数量",
     "48小时统计起始",
     "48小时统计结束",
-    "最近日成交数量",
+    "前一日成交数量",
     "成交量统计日期",
     "数量门槛",
     "计价方式",
@@ -972,7 +974,7 @@ def write_csv(
                     row.volume_48h,
                     row.statistics_48h_start,
                     row.statistics_48h_end,
-                    row.latest_daily_volume,
+                    row.previous_day_volume,
                     row.volume_date,
                     min_daily_volume,
                     item.valuation_method
@@ -1007,7 +1009,7 @@ def write_pack_summary_csv(summaries: list[PackSummary], output: Path) -> None:
                 "赋能种类数",
                 "有价格种类数",
                 "数量达标且有价格种类数",
-                "最近日数量门槛",
+                "前一日数量门槛",
                 "每包成本(溶解液)",
                 "每包赋能数",
                 "直接市场期望白金/包",
@@ -1071,12 +1073,12 @@ def write_json(
                     "drawsPerPack": PACK_DRAWS,
                     "priceWindow": "closed hourly records from statistics_closed.48hours, exact max rank",
                     "priceMetric": "volume-weighted average of each hourly wa_price, weighted again by hourly volume",
-                    "volumeWindow": "latest closed day from the 90-day chart, exact max rank",
+                    "volumeWindow": "previous complete UTC calendar day from statistics_closed.90days, exact max rank; zero when that date has no record",
                     "minDailyVolume": summaries[0].min_daily_volume if summaries else None,
                     "secondaryFilterMinDailyVolume": SECONDARY_FILTER_MIN_DAILY_VOLUME,
                     "secondaryFilterMaxDailyVolume": SECONDARY_FILTER_MAX_DAILY_VOLUME,
                     "secondaryFilterMinAveragePrice": SECONDARY_FILTER_MIN_AVERAGE_PRICE,
-                    "valuation": "market-qualified rewards use max-rank 48-hour volume-weighted average price / copies required; rewards below the daily volume threshold, rewards with daily volume 10-20 inclusive and max-rank average price below 80, or rewards without 48-hour trades are dissolved and their Vosfor is recursively reinvested into the same collection that produced them",
+                    "valuation": "market-qualified rewards use max-rank 48-hour volume-weighted average price / copies required; rewards below the previous complete UTC day's volume threshold, rewards with that volume 10-20 inclusive and max-rank average price below 80, or rewards without 48-hour trades are dissolved and their Vosfor is recursively reinvested into the same collection that produced them",
                     "fixedPoint": "V_pack = direct_market_value_pack / (1 - recycling_pack_fraction_pack)",
                     "recycleRule": "each collection reinvests its recovered Vosfor into itself",
                     "recycleTargetPack": "各自来源组合包",
@@ -1103,7 +1105,7 @@ def print_preview(rows: list[PriceRow], limit: int, min_daily_volume: int) -> No
         valuation_status = valuation_method_for_row(row, min_daily_volume)
         print(
             f"{row.name_zh:<28} R{row.max_rank}  {row.average_price_48h:>7.2f} 白金  "
-            f"48h量 {row.volume_48h:>4}  最近日量 {row.latest_daily_volume:>4}  {valuation_status}"
+            f"48h量 {row.volume_48h:>4}  前一日量 {row.previous_day_volume:>4}  {valuation_status}"
         )
 
 
@@ -1143,7 +1145,7 @@ def parse_args() -> argparse.Namespace:
         "--min-volume",
         type=int,
         default=DEFAULT_MIN_DAILY_VOLUME,
-        help="第一层筛选：最近日成交数量低于此值时按分解荧尘再投资计价（默认：10；另固定剔除日量10-20且均价<80）",
+        help="第一层筛选：前一日成交数量低于此值时按分解荧尘再投资计价（默认：10；另固定剔除日量10-20且均价<80）",
     )
     parser.add_argument("--preview", type=int, default=15, metavar="N", help="在终端预览最便宜的 N 条（默认：15）")
     parser.add_argument("--timeout", type=float, default=20.0, help="单次请求超时秒数（默认：20）")
@@ -1166,7 +1168,7 @@ def main() -> int:
         arcanes = find_arcanes(items)
         if not arcanes:
             raise ApiError(f"物品清单中没有找到标签为 {ARCANE_TAG!r} 的可升级赋能")
-        print(f"共找到 {len(arcanes)} 种赋能，开始读取满级近 48 小时均价和最近日成交数量...", file=sys.stderr)
+        print(f"共找到 {len(arcanes)} 种赋能，开始读取满级近 48 小时均价和前一日成交数量...", file=sys.stderr)
         dissolution_by_game_ref, dissolution_by_name = load_dissolution_vosfor_values(client)
         rows = fetch_prices(
             client,
