@@ -34,7 +34,6 @@ SECONDARY_FILTER_MIN_DAILY_VOLUME = 10
 SECONDARY_FILTER_MAX_DAILY_VOLUME = 20
 SECONDARY_FILTER_MIN_AVERAGE_PRICE = 80.0
 PACK_COST_VOSFOR = 200
-PACK_COST_CREDITS = 50_000
 PACK_DRAWS = 3
 CACHE_MAX_AGE_SECONDS = 24 * 60 * 60
 # Official public limit is 3 requests/second. 0.4 s leaves a safety margin.
@@ -1010,7 +1009,6 @@ def write_pack_summary_csv(summaries: list[PackSummary], output: Path) -> None:
                 "数量达标且有价格种类数",
                 "最近日数量门槛",
                 "每包成本(溶解液)",
-                "每包成本(信用点)",
                 "每包赋能数",
                 "直接市场期望白金/包",
                 "回收组合包比例/包",
@@ -1039,7 +1037,6 @@ def write_pack_summary_csv(summaries: list[PackSummary], output: Path) -> None:
                     summary.volume_qualified_count,
                     summary.min_daily_volume,
                     PACK_COST_VOSFOR,
-                    PACK_COST_CREDITS,
                     PACK_DRAWS,
                     round(summary.direct_market_platinum_per_pack, 4),
                     round(summary.recycling_pack_fraction, 6),
@@ -1071,7 +1068,6 @@ def write_json(
             {
                 "methodology": {
                     "packCostVosfor": PACK_COST_VOSFOR,
-                    "packCostCredits": PACK_COST_CREDITS,
                     "drawsPerPack": PACK_DRAWS,
                     "priceWindow": "closed hourly records from statistics_closed.48hours, exact max rank",
                     "priceMetric": "volume-weighted average of each hourly wa_price, weighted again by hourly volume",
@@ -1085,7 +1081,6 @@ def write_json(
                     "recycleRule": "each collection reinvests its recovered Vosfor into itself",
                     "recycleTargetPack": "各自来源组合包",
                     "recycleValuePer200Vosfor": None,
-                    "creditValuation": "ignored; every additional recycled 200 Vosfor pack still costs 50,000 Credits",
                     "dissolutionDataSource": "https://warframe.fandom.com/wiki/Module:Arcane/data",
                 },
                 "packSummary": [asdict(summary) for summary in summaries],

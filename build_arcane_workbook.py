@@ -294,7 +294,6 @@ def _write_parameters_sheet(workbook: Workbook, data: dict[str, Any]) -> None:
     sheet["A24"] = "计算说明与数据来源"
     notes = [
         ["同包固定点", "V包 = A包 ÷ (1 − B包)", "即 A + BA + B²A + …；后续每轮继续分解并购买同一个包"],
-        ["信用点", methodology["packCostCredits"], "未折算成白金；每次用 200 荧尘再买包仍需 50,000 信用点"],
         ["市场数据", "https://api.warframe.market/v1/items/{slug}/statistics", "满级近 48 小时成交量加权平均价；数量门槛用最近已结算自然日"],
         ["荧尘机制", "https://warframe.fandom.com/wiki/Vosfor", "组合包成本与分解机制参考"],
         ["分解数值", methodology["dissolutionDataSource"], "每个未升级赋能的荧尘分解值"],
@@ -323,7 +322,8 @@ def _write_parameters_sheet(workbook: Workbook, data: dict[str, Any]) -> None:
             cell.number_format = "0.000000" if cell.column == 3 else "0.0000"
     sheet["A24"].fill = PatternFill("solid", fgColor=TEAL_LIGHT)
     sheet["A24"].font = Font(name="Microsoft YaHei UI", size=11, bold=True, color="174A50")
-    for row in sheet.iter_rows(min_row=25, max_row=29, min_col=1, max_col=3):
+    notes_last_row = 24 + len(notes)
+    for row in sheet.iter_rows(min_row=25, max_row=notes_last_row, min_col=1, max_col=3):
         for cell in row:
             cell.font = Font(name="Microsoft YaHei UI", size=9, color=BODY_TEXT)
             cell.alignment = Alignment(vertical="top", wrap_text=True)
@@ -333,7 +333,7 @@ def _write_parameters_sheet(workbook: Workbook, data: dict[str, Any]) -> None:
     for row in range(3, 30):
         sheet.row_dimensions[row].height = 23
     sheet.row_dimensions[10].height = 42
-    for row in range(25, 30):
+    for row in range(25, notes_last_row + 1):
         sheet.row_dimensions[row].height = 38
 
     sheet["B4"].comment = Comment("低于门槛时改按分解荧尘再投资计价。", "User")
