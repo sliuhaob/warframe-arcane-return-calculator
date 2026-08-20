@@ -4,9 +4,9 @@
 
 获取 Warframe Market 的 PC Cross Play 满级赋能近 48 小时成交数据，按洛德赋能组合包分类，计算包含“分解为荧尘后继续投入原组合包”的长期收益，并生成 Excel。
 
-## 使用 EXE
+## 使用 Windows ZIP
 
-从 GitHub Releases 下载 `Warframe赋能收益表更新器.exe`，直接双击运行，不需要安装 Python。
+从 GitHub Releases 下载 `Warframe-Arcane-Return-Updater-Windows-x64.zip`，完整解压后双击 `Warframe赋能收益表更新器.exe`，不需要安装 Python。不要只把 EXE 单独移出解压目录。
 
 1. 打开程序；程序不会自动联网。
 2. 点击“更新并生成表格”。
@@ -15,7 +15,7 @@
 默认输出文件为：
 
 ```text
-EXE所在目录\outputs\daily_arcane_return\赋能收益表_最新.xlsx
+解压目录\Warframe-Arcane-Return-Updater-Windows-x64\outputs\daily_arcane_return\赋能收益表_最新.xlsx
 ```
 
 也可以在程序中点击“更改…”选择其他目录。缓存、CSV、JSON和错误日志保存在：
@@ -26,14 +26,14 @@ EXE所在目录\outputs\daily_arcane_return\赋能收益表_最新.xlsx
 
 ## 源码文件
 
-仓库只保留运行和重新构建 EXE 必须的文件：
+仓库只保留运行和重新构建 Windows 文件夹版 ZIP 必须的文件：
 
 - `arcane_updater.py`：Windows 图形界面和完整更新流程。
 - `warframe_arcane_prices.py`：市场抓取、成交量筛选、组合包概率及无限回收计算。
 - `build_arcane_workbook.py`：生成并检查 Excel 工作簿。
 - `requirements.txt`：运行源码所需依赖。
 - `requirements-build.txt`：构建 EXE 所需依赖。
-- `arcane_updater.spec`：PyInstaller 单文件打包配置。
+- `arcane_updater.spec`：PyInstaller 文件夹模式打包配置。
 - `build_exe.ps1`：Windows 一键构建脚本。
 - `.gitignore`：排除缓存、输出、虚拟环境和构建产物。
 - `README.md`：使用、构建和计算方法说明。
@@ -47,7 +47,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe .\arcane_updater.py
 ```
 
-## 构建单文件 EXE
+## 构建 Windows 文件夹版 ZIP
 
 在 Windows PowerShell 中运行：
 
@@ -58,10 +58,10 @@ python -m venv .venv
 构建结果：
 
 ```text
-dist\Warframe赋能收益表更新器.exe
+dist\Warframe-Arcane-Return-Updater-Windows-x64.zip
 ```
 
-构建脚本使用独立的 `.build-venv`，不会修改日常运行环境。构建产物默认没有代码签名。
+构建脚本使用独立的 `.build-venv`，不会修改日常运行环境。ZIP 内保留完整运行时目录，避免单文件版每次启动时自解压。构建产物默认没有代码签名。
 
 ## 计算口径
 

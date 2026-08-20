@@ -24,8 +24,17 @@ if ($LASTEXITCODE -ne 0) { throw "安装打包依赖失败。" }
 & $BuildPython -m PyInstaller --noconfirm --clean arcane_updater.spec
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller构建失败。" }
 
-$Executable = Join-Path $PSScriptRoot "dist\Warframe赋能收益表更新器.exe"
+$BundleDirectory = Join-Path $PSScriptRoot "dist\Warframe-Arcane-Return-Updater-Windows-x64"
+$Executable = Join-Path $BundleDirectory "Warframe赋能收益表更新器.exe"
+$Archive = Join-Path $PSScriptRoot "dist\Warframe-Arcane-Return-Updater-Windows-x64.zip"
 if (-not (Test-Path -LiteralPath $Executable)) { throw "没有找到构建结果：$Executable" }
 
+if (Test-Path -LiteralPath $Archive) {
+    [System.IO.File]::Delete($Archive)
+}
+Compress-Archive -LiteralPath $BundleDirectory -DestinationPath $Archive -CompressionLevel Optimal
+if (-not (Test-Path -LiteralPath $Archive)) { throw "没有找到 ZIP 构建结果：$Archive" }
+
 Write-Host ""
-Write-Host "构建完成：$Executable" -ForegroundColor Green
+Write-Host "文件夹版构建完成：$BundleDirectory" -ForegroundColor Green
+Write-Host "ZIP 构建完成：$Archive" -ForegroundColor Green
